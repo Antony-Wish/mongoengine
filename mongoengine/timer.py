@@ -16,7 +16,6 @@ def log_slow_event(event_name, collection, params, threshold=None):
     if threshold is None:
         threshold = SLOW_THRESHOLD
 
-    threshold = 0
     if run_time > threshold and callback:
         callback(event_name, collection, params, run_time)
 

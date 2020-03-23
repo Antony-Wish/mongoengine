@@ -1,6 +1,8 @@
 import atexit
 import functools
 import socket
+import os
+import sys
 import warnings
 import weakref
 import time
@@ -161,6 +163,9 @@ class GreenletSocket(object):
         # do the connect on the underlying socket asynchronously...
         self.stream.connect(pair, greenlet.getcurrent().switch)
 
+    def getpeername(self):
+        return self.stream.socket.getpeername()
+
     def sendall(self, data):
         # do the send on the underlying socket synchronously...
         try:
@@ -215,6 +220,7 @@ class GreenletPool(pymongo.pool.Pool):
     """A simple connection pool of GreenletSockets.
     """
     def __init__(self, *args, **kwargs):
+        print >> sys.stderr, "------------------GreenletPool init"
         io_loop = kwargs.pop('io_loop', None)
         self.io_loop = io_loop if io_loop else ioloop.IOLoop.instance()
         pymongo.pool.Pool.__init__(self, *args, **kwargs)
@@ -244,6 +250,7 @@ class GreenletPool(pymongo.pool.Pool):
         err = None
         for res in socket.getaddrinfo(host, port, family, socket.SOCK_STREAM):
             af, socktype, proto, dummy, sa = res
+            print >> sys.stderr, "------------------GreenletPool create_connection socket address", sa, host, port, "pid", os.getpid()
             green_sock = None
             try:
                 sock = socket.socket(af, socktype, proto)
@@ -647,7 +654,8 @@ class GreenletClient(object):
         def _inner_connect(io_loop, *args, **kwargs):
             # asynchronously create a MongoClient using our IOLoop
             try:
-                kwargs['use_greenlets'] = False
+                print >> sys.stderr, "------------------GreenletClient sync_connect"
+                kwargs['use_greenlets'] = True
                 kwargs['_pool_class'] = GreenletPool
                 kwargs['_event_class'] = functools.partial(GreenletEvent,
                                                            io_loop)
